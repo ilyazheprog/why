@@ -7,11 +7,12 @@ import (
 )
 
 type process struct {
-	PID        int    `json:"pid"`
+	PID        int    `json:"pid,omitempty"`
 	ExitCode   *int   `json:"exit_code,omitempty"`
 	Signal     string `json:"signal,omitempty"`
 	DurationMS int64  `json:"duration_ms"`
 	TimedOut   bool   `json:"timed_out,omitempty"`
+	ExecFailed bool   `json:"exec_failed,omitempty"`
 }
 type document struct {
 	SchemaVersion string          `json:"schema_version"`
@@ -22,7 +23,7 @@ type document struct {
 }
 
 func Render(w io.Writer, r model.Report) error {
-	d := document{r.SchemaVersion, r.Command, r.Result, process{r.Process.PID, r.Process.ExitCode, r.Process.Signal, r.Process.Duration.Milliseconds(), r.Process.TimedOut}, r.Diagnosis}
+	d := document{r.SchemaVersion, r.Command, r.Result, process{r.Process.PID, r.Process.ExitCode, r.Process.Signal, r.Process.Duration.Milliseconds(), r.Process.TimedOut, r.Process.ExecFailed}, r.Diagnosis}
 	enc := stdjson.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(d)

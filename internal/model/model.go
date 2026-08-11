@@ -16,11 +16,12 @@ type Command struct {
 }
 
 type ProcessResult struct {
-	PID      int
-	ExitCode *int
-	Signal   string
-	Duration time.Duration
-	TimedOut bool
+	PID        int
+	ExitCode   *int
+	Signal     string
+	Duration   time.Duration
+	TimedOut   bool
+	ExecFailed bool
 }
 
 type BindFailure struct {
