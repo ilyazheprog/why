@@ -44,7 +44,7 @@ func run(args []string) int {
 	if err != nil {
 		return renderExecError(cfg, err)
 	}
-	report := model.Report{SchemaVersion: "1", Command: cfg.Command, Process: result.Process, Diagnosis: diagnosis.Evaluate(result.Events)}
+	report := model.Report{SchemaVersion: "1", Command: cfg.Command, Process: result.Process, Diagnosis: diagnosis.Evaluate(result.Events, result.Process)}
 	if result.Process.ExitCode != nil && *result.Process.ExitCode == 0 {
 		report.Result = "succeeded"
 	} else {

@@ -98,3 +98,6 @@ jobs:
 
       - name: Diagnose address already in use
         run: bash tests/integration/bind_address_in_use.sh /tmp/why /tmp/why-bindfail
+
+      - name: Diagnose signal termination
+        run: bash tests/integration/signal_termination.sh /tmp/why
