@@ -47,13 +47,9 @@ jobs:
         run: go test -race ./...
 
   build:
-    name: Build linux/${{ matrix.arch }}
+    name: Build linux/amd64
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [amd64, arm64]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -68,7 +64,7 @@ jobs:
         env:
           CGO_ENABLED: "0"
           GOOS: linux
-          GOARCH: ${{ matrix.arch }}
+          GOARCH: amd64
         run: go build -trimpath -buildvcs=false -o why ./cmd/why
 
       - name: Verify binary type
@@ -77,7 +73,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: why-linux-${{ matrix.arch }}
+          name: why-linux-amd64
           path: why
           if-no-files-found: error
 
