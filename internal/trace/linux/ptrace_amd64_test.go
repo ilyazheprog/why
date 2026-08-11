@@ -4,9 +4,16 @@ package linux
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"whytool.org/why/internal/model"
 )
+
+func TestProcessIDNormalizesCurrentTask(t *testing.T) {
+	if got := processID(os.Getpid()); got != os.Getpid() {
+		t.Fatalf("processID=%d want %d", got, os.Getpid())
+	}
+}
 
 func TestRelevantEventBufferIsBounded(t *testing.T) {
 	var events []model.Event

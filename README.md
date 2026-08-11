@@ -4,7 +4,7 @@
 
 Unlike tracing tools that only expose low-level events, Why correlates operating-system evidence into causal diagnoses. Why does not guess: a root cause is reported only when observable evidence supports it.
 
-Why v0.1 supports Linux/amd64. It executes commands directly under `ptrace`, follows their process tree, and emits evidence-backed human or versioned JSON diagnoses.
+Why supports Linux/amd64 and Linux/arm64. It executes commands directly under `ptrace`, follows their process tree, and emits evidence-backed human or versioned JSON diagnoses.
 
 ```console
 $ why ./server
@@ -33,7 +33,7 @@ No external commands or runtimes are invoked by the resulting binary.
 bash <(curl -fsSL https://whytool.org/install.sh)
 ```
 
-The installer downloads the latest Linux/amd64 release, verifies it against the published `SHA256SUMS`, and installs it to `~/.local/bin/why`. Set `WHY_INSTALL_DIR` to choose another directory or `WHY_VERSION` to install a specific version.
+The installer downloads the latest Linux/amd64 or Linux/arm64 release, verifies it against the published `SHA256SUMS`, and installs it to `~/.local/bin/why`. Set `WHY_INSTALL_DIR` to choose another directory or `WHY_VERSION` to install a specific version.
 
 ## Development
 
@@ -41,9 +41,9 @@ The installer downloads the latest Linux/amd64 release, verifies it against the 
 make test
 ```
 
-CI checks formatting, tests, `go vet`, the race detector, a static Linux/amd64 build, and end-to-end ptrace diagnoses.
+CI checks formatting, tests, `go vet`, the race detector, static Linux/amd64 and Linux/arm64 builds, and end-to-end ptrace diagnoses on both architectures.
 
-Version tags matching `v*.*.*` run the release pipeline. It tests the tagged source, produces a reproducible standalone archive for `linux/amd64`, creates `SHA256SUMS`, and publishes the files to GitHub Releases.
+Version tags matching `v*.*.*` run the release pipeline. It tests the tagged source, produces reproducible standalone archives for `linux/amd64` and `linux/arm64`, creates `SHA256SUMS`, and publishes the files to GitHub Releases.
 
 ## Usage
 
@@ -64,8 +64,7 @@ Target stdout remains on stdout and target stderr remains on stderr. In JSON mod
 
 ## Current limits
 
-- Released trace backend: Linux/amd64.
-- Linux/arm64 has an experimental native ptrace backend and is cross-built in CI, but is not included in releases until its integration suite runs on an ARM64 runner.
+- Trace backends: Linux/amd64 and Linux/arm64.
 - Command-start diagnostics cover missing commands, execution permission, invalid executable formats, missing shebang interpreters, and missing ELF loaders.
 - Network diagnostics cover `bind(2)` address conflicts and `connect(2)` refusal, timeout, unreachable network/host, reset, and unavailable-address failures. Process termination diagnoses cover signals including `SIGSEGV`, `SIGABRT`, and `SIGKILL`.
 - Filesystem candidates cover missing paths, permissions, read-only filesystems, space/quota exhaustion, file descriptor limits, and path type errors. They are reported conservatively as likely causes unless stronger causal evidence exists.

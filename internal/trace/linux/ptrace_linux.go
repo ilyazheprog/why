@@ -9,9 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -135,7 +137,7 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 						}
 					}
 					if state.filePath != "" {
-						failure := &model.FileFailure{PID: pid, Operation: state.fileOp, Path: state.filePath, Flags: state.fileFlags, Errno: fileErrno(frame.Result), Timestamp: time.Now()}
+						failure := &model.FileFailure{PID: processID(pid), Operation: state.fileOp, Path: state.filePath, Flags: state.fileFlags, Errno: fileErrno(frame.Result), Timestamp: time.Now()}
 						events = recordFileOutcome(events, failure)
 						state.fileOp, state.filePath, state.fileFlags = "", "", 0
 					}
@@ -298,7 +300,7 @@ func readBind(pid int, address uintptr, length uint64) (*model.BindFailure, bool
 	if !ok {
 		return nil, false
 	}
-	return &model.BindFailure{PID: pid, Network: network, Address: host, Port: port, Errno: "EADDRINUSE", Timestamp: time.Now()}, true
+	return &model.BindFailure{PID: processID(pid), Network: network, Address: host, Port: port, Errno: "EADDRINUSE", Timestamp: time.Now()}, true
 }
 
 func readConnect(pid int, address uintptr, length uint64, errno string) (*model.ConnectFailure, bool) {
@@ -306,7 +308,25 @@ func readConnect(pid int, address uintptr, length uint64, errno string) (*model.
 	if !ok {
 		return nil, false
 	}
-	return &model.ConnectFailure{PID: pid, Network: network, Address: host, Port: port, Errno: errno, Timestamp: time.Now()}, true
+	return &model.ConnectFailure{PID: processID(pid), Network: network, Address: host, Port: port, Errno: errno, Timestamp: time.Now()}, true
+}
+
+func processID(taskID int) int {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/status", taskID))
+	if err != nil {
+		return taskID
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if !strings.HasPrefix(line, "Tgid:") {
+			continue
+		}
+		value, parseErr := strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(line, "Tgid:")))
+		if parseErr == nil && value > 0 {
+			return value
+		}
+		break
+	}
+	return taskID
 }
 
 func readSocketAddress(pid int, address uintptr, length uint64) (string, string, uint16, bool) {

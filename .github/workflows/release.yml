@@ -38,10 +38,18 @@ jobs:
         run: go vet ./...
 
   build:
-    name: Package linux/amd64
+    name: Package linux/${{ matrix.arch }}
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -57,7 +65,7 @@ jobs:
         env:
           CGO_ENABLED: "0"
           GOOS: linux
-          GOARCH: amd64
+          GOARCH: ${{ matrix.arch }}
         run: |
           version=${GITHUB_REF_NAME#v}
           go build \
@@ -81,7 +89,7 @@ jobs:
         shell: bash
         run: |
           version=${GITHUB_REF_NAME#v}
-          archive_dir="why_${version}_linux_amd64"
+          archive_dir="why_${version}_linux_${{ matrix.arch }}"
           mkdir -p "stage/$archive_dir" dist
           install -m 0755 why "stage/$archive_dir/why"
           install -m 0644 README.md LICENSE-MIT "stage/$archive_dir/"
@@ -100,7 +108,7 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: why-linux-amd64
+          name: why-linux-${{ matrix.arch }}
           path: dist/*.tar.gz
           if-no-files-found: error
           retention-days: 7

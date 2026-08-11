@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.1 — 2026-08-11
+
+- Added a native Linux/arm64 ptrace backend and release artifact.
+- Added the complete ptrace integration suite on native ARM64 runners.
+- Added conservative cgroup v2 OOM-kill correlation.
+
 ## v0.1.0 — 2026-08-11
 
 First public release for Linux/amd64.
