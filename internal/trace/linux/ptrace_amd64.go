@@ -3,6 +3,7 @@
 package linux
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -27,6 +28,9 @@ type taskState struct {
 	inSyscall bool
 	syscall   uint64
 	args      [6]uint64
+	fileOp    string
+	filePath  string
+	fileFlags uint64
 }
 
 func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, error) {
@@ -110,19 +114,25 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 					state.inSyscall = true
 					state.syscall = regs.Orig_rax
 					state.args = [6]uint64{regs.Rdi, regs.Rsi, regs.Rdx, regs.R10, regs.R8, regs.R9}
+					state.fileOp, state.filePath, state.fileFlags = fileCall(pid, state.syscall, state.args)
 				} else {
 					state.inSyscall = false
 					if state.syscall == syscall.SYS_BIND && int64(regs.Rax) == -int64(syscall.EADDRINUSE) {
 						if b, ok := readBind(pid, uintptr(state.args[1]), state.args[2]); ok {
-							events = append(events, model.Event{BindFailure: b})
+							events = appendRelevantEvent(events, model.Event{BindFailure: b})
 						}
 					}
 					if state.syscall == syscall.SYS_CONNECT {
 						if errno := connectErrno(int64(regs.Rax)); errno != "" {
 							if failure, ok := readConnect(pid, uintptr(state.args[1]), state.args[2], errno); ok {
-								events = append(events, model.Event{ConnectFailure: failure})
+								events = appendRelevantEvent(events, model.Event{ConnectFailure: failure})
 							}
 						}
+					}
+					if state.filePath != "" {
+						failure := &model.FileFailure{PID: pid, Operation: state.fileOp, Path: state.filePath, Flags: state.fileFlags, Errno: fileErrno(int64(regs.Rax)), Timestamp: time.Now()}
+						events = recordFileOutcome(events, failure)
+						state.fileOp, state.filePath, state.fileFlags = "", "", 0
 					}
 				}
 			}
@@ -143,6 +153,104 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 	}
 	result.Duration = time.Since(started)
 	return trace.Result{Process: result, Events: events}, nil
+}
+
+func fileCall(pid int, number uint64, args [6]uint64) (string, string, uint64) {
+	var operation string
+	var pathAddress uint64
+	var flags uint64
+	switch number {
+	case syscall.SYS_OPEN:
+		operation, pathAddress, flags = "open", args[0], args[1]
+	case syscall.SYS_OPENAT:
+		operation, pathAddress, flags = "openat", args[1], args[2]
+	case syscall.SYS_MKDIR:
+		operation, pathAddress = "mkdir", args[0]
+	case syscall.SYS_MKDIRAT:
+		operation, pathAddress = "mkdirat", args[1]
+	default:
+		return "", "", 0
+	}
+	path, ok := readCString(pid, uintptr(pathAddress), 4096)
+	if !ok {
+		return "", "", 0
+	}
+	return operation, path, flags
+}
+
+func readCString(pid int, address uintptr, limit int) (string, bool) {
+	result := make([]byte, 0, 128)
+	for len(result) < limit {
+		chunkSize := 128
+		if remaining := limit - len(result); remaining < chunkSize {
+			chunkSize = remaining
+		}
+		chunk := make([]byte, chunkSize)
+		n, err := syscall.PtracePeekData(pid, address+uintptr(len(result)), chunk)
+		if n == 0 && err != nil {
+			return "", false
+		}
+		chunk = chunk[:n]
+		if end := bytes.IndexByte(chunk, 0); end >= 0 {
+			return string(append(result, chunk[:end]...)), true
+		}
+		result = append(result, chunk...)
+		if err != nil {
+			return "", false
+		}
+	}
+	return "", false
+}
+
+func fileErrno(result int64) string {
+	switch -result {
+	case int64(syscall.ENOENT):
+		return "ENOENT"
+	case int64(syscall.EACCES):
+		return "EACCES"
+	case int64(syscall.EPERM):
+		return "EPERM"
+	case int64(syscall.EROFS):
+		return "EROFS"
+	case int64(syscall.ENOSPC):
+		return "ENOSPC"
+	case int64(syscall.EDQUOT):
+		return "EDQUOT"
+	case int64(syscall.EMFILE):
+		return "EMFILE"
+	case int64(syscall.ENFILE):
+		return "ENFILE"
+	case int64(syscall.EISDIR):
+		return "EISDIR"
+	case int64(syscall.ENOTDIR):
+		return "ENOTDIR"
+	default:
+		return ""
+	}
+}
+
+func recordFileOutcome(events []model.Event, outcome *model.FileFailure) []model.Event {
+	if outcome.Errno != "" {
+		return appendRelevantEvent(events, model.Event{FileFailure: outcome})
+	}
+	for i := len(events) - 1; i >= 0; i-- {
+		previous := events[i].FileFailure
+		if previous != nil && previous.PID == outcome.PID && previous.Operation == outcome.Operation && previous.Path == outcome.Path {
+			return append(events[:i], events[i+1:]...)
+		}
+	}
+	return events
+}
+
+const maxRelevantEvents = 512
+
+func appendRelevantEvent(events []model.Event, event model.Event) []model.Event {
+	if len(events) < maxRelevantEvents {
+		return append(events, event)
+	}
+	copy(events, events[1:])
+	events[len(events)-1] = event
+	return events
 }
 
 func signalName(signal syscall.Signal) string {

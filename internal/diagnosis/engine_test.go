@@ -79,3 +79,35 @@ func TestConnectDiagnoses(t *testing.T) {
 		})
 	}
 }
+
+func TestFileDiagnosesAreConservative(t *testing.T) {
+	tests := []struct{ errno, id string }{
+		{"ENOENT", "filesystem.path_missing"},
+		{"EACCES", "filesystem.permission_denied"},
+		{"EROFS", "filesystem.read_only"},
+		{"ENOSPC", "filesystem.no_space"},
+		{"EDQUOT", "filesystem.quota_exceeded"},
+		{"EMFILE", "resource.file_descriptor_limit"},
+		{"ENFILE", "resource.system_file_limit"},
+		{"EISDIR", "filesystem.path_is_directory"},
+		{"ENOTDIR", "filesystem.path_component_not_directory"},
+	}
+	for _, test := range tests {
+		t.Run(test.errno, func(t *testing.T) {
+			failure := &model.FileFailure{PID: 42, Operation: "openat", Path: "/data/file", Errno: test.errno}
+			events := []model.Event{{FileFailure: failure}, {FileFailure: failure}}
+			d := Evaluate(events, model.ProcessResult{})
+			if d.Cause == nil || d.Cause.ID != test.id || d.Confidence != model.Likely {
+				t.Fatalf("unexpected diagnosis: %#v", d)
+			}
+		})
+	}
+}
+
+func TestSingleFileFailureIsNotEnoughForDiagnosis(t *testing.T) {
+	events := []model.Event{{FileFailure: &model.FileFailure{PID: 42, Operation: "openat", Path: "/optional/config", Errno: "ENOENT"}}}
+	d := Evaluate(events, model.ProcessResult{})
+	if d.Cause != nil || d.Confidence != model.Unknown {
+		t.Fatalf("unexpected diagnosis: %#v", d)
+	}
+}

@@ -20,6 +20,9 @@ func Evaluate(events []model.Event, process model.ProcessResult) model.Diagnosis
 		if failure := events[i].ConnectFailure; failure != nil {
 			return connectDiagnosis(*failure)
 		}
+		if failure := events[i].FileFailure; failure != nil && repeatedFileFailure(events, i) {
+			return fileDiagnosis(*failure)
+		}
 		failure := events[i].BindFailure
 		if failure == nil || failure.Errno != "EADDRINUSE" {
 			continue
@@ -37,6 +40,51 @@ func Evaluate(events []model.Event, process model.ProcessResult) model.Diagnosis
 		return model.Diagnosis{Confidence: model.Certain, Cause: cause, Evidence: []model.Evidence{evidence}}
 	}
 	return model.Diagnosis{Confidence: model.Unknown}
+}
+
+func repeatedFileFailure(events []model.Event, index int) bool {
+	candidate := events[index].FileFailure
+	if candidate == nil {
+		return false
+	}
+	for i := index - 1; i >= 0; i-- {
+		previous := events[i].FileFailure
+		if previous != nil && previous.PID == candidate.PID && previous.Operation == candidate.Operation && previous.Path == candidate.Path && previous.Errno == candidate.Errno {
+			return true
+		}
+	}
+	return false
+}
+
+func fileDiagnosis(failure model.FileFailure) model.Diagnosis {
+	id := "filesystem.operation_failed"
+	reason := "operation failed"
+	switch failure.Errno {
+	case "ENOENT":
+		id, reason = "filesystem.path_missing", "path does not exist"
+	case "EACCES", "EPERM":
+		id, reason = "filesystem.permission_denied", "permission denied"
+	case "EROFS":
+		id, reason = "filesystem.read_only", "filesystem is read-only"
+	case "ENOSPC":
+		id, reason = "filesystem.no_space", "no filesystem space was available"
+	case "EDQUOT":
+		id, reason = "filesystem.quota_exceeded", "storage quota was exceeded"
+	case "EMFILE":
+		id, reason = "resource.file_descriptor_limit", "process file descriptor limit was reached"
+	case "ENFILE":
+		id, reason = "resource.system_file_limit", "system file table limit was reached"
+	case "EISDIR":
+		id, reason = "filesystem.path_is_directory", "path is a directory"
+	case "ENOTDIR":
+		id, reason = "filesystem.path_component_not_directory", "a path component is not a directory"
+	}
+	summary := fmt.Sprintf("%s(%s) failed: %s", failure.Operation, failure.Path, reason)
+	evidence := model.Evidence{ID: "e1", Type: "syscall", Source: "ptrace", ProcessID: failure.PID, Data: map[string]any{
+		"name": failure.Operation, "path": failure.Path, "flags": failure.Flags, "errno": failure.Errno,
+	}}
+	cause := &model.Cause{ID: id, Summary: summary, Confidence: model.Likely, Evidence: []string{"e1"}}
+	return model.Diagnosis{Confidence: model.Likely, Cause: cause, Evidence: []model.Evidence{evidence}}
 }
 
 func connectDiagnosis(failure model.ConnectFailure) model.Diagnosis {
