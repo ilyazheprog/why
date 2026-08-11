@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Why is a system diagnostic tool that explains why a program failed using deterministic, evidence-backed diagnoses.">
+  <meta name="theme-color" content="#0b0d0c">
+  <title>Why — Find out why it failed.</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%230b0d0c%22/><text x=%2232%22 y=%2246%22 text-anchor=%22middle%22 font-size=%2246%22 font-family=%22monospace%22 fill=%22%23b7f774%22>?</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="#" aria-label="Why home"><span>?</span> why</a>
+    <nav aria-label="Main navigation">
+      <a href="#principles">Principles</a>
+      <a href="#status">Status</a>
+      <a class="github" href="https://github.com/ilyazheprog/why">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow">SYSTEM DIAGNOSTICS, EXPLAINED</div>
+      <h1>Find out <em>why</em><br>it failed.</h1>
+      <p class="lead">Why turns low-level operating-system evidence into a deterministic causal explanation. Put <code>why</code> before a failing command. Get an answer you can trust.</p>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/ilyazheprog/why">View on GitHub <span>→</span></a>
+        <a class="button secondary" href="#status">Development status</a>
+      </div>
+    </section>
+
+    <section class="demo" aria-label="Why terminal example">
+      <div class="terminal-bar">
+        <span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span>
+        <span class="terminal-title">terminal</span>
+      </div>
+      <pre><code><span class="muted">$</span> why ./server
+
+server exited with code 1 after 184ms
+
+<span class="accent">Root cause</span>
+└─ Failed to bind TCP socket
+   └─ 0.0.0.0:8080 is already in use
+      └─ nginx <span class="muted">(PID 3812)</span>
+
+<span class="accent">Evidence</span>
+  bind(AF_INET, 0.0.0.0:8080) <span class="error">→ EADDRINUSE</span></code></pre>
+    </section>
+
+    <section class="statement">
+      <p>Tracing tools show you <span>what happened.</span></p>
+      <h2>Why tells you why.</h2>
+    </section>
+
+    <section id="principles" class="principles">
+      <div class="section-heading">
+        <div class="eyebrow">BUILT FOR TRUST</div>
+        <h2>No guesses.<br>Only evidence.</h2>
+      </div>
+      <div class="cards">
+        <article>
+          <div class="number">01</div>
+          <h3>Deterministic</h3>
+          <p>A definitive root cause is emitted only when observable evidence establishes causality. Unknown is better than wrong.</p>
+        </article>
+        <article>
+          <div class="number">02</div>
+          <h3>Native</h3>
+          <p>One standalone Go binary. No shell-outs to strace, lsof, ss, ldd, or other command-line dependencies.</p>
+        </article>
+        <article>
+          <div class="number">03</div>
+          <h3>Structured</h3>
+          <p>A causal diagnosis graph powers both the Unix-friendly human output and a versioned JSON machine interface.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="status" class="status">
+      <div>
+        <div class="eyebrow">EARLY DEVELOPMENT</div>
+        <h2>The first vertical slice is alive.</h2>
+        <p>Why currently traces Linux/amd64 programs with <code>ptrace</code>, follows their process tree, diagnoses TCP address conflicts, and identifies the process holding the port through procfs.</p>
+      </div>
+      <div class="pipeline" aria-label="Current diagnostic pipeline">
+        <span>ptrace</span><b>→</b><span>events</span><b>→</b><span>evidence</span><b>→</b><span>cause</span>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div class="prompt">$</div>
+      <h2>Help build a diagnostic primitive.</h2>
+      <p>Why is open source, written in Go, and licensed under MIT.</p>
+      <a class="button primary" href="https://github.com/ilyazheprog/why">Explore the source <span>→</span></a>
+    </section>
+  </main>
+
+  <footer>
+    <a class="brand" href="#"><span>?</span> why</a>
+    <p>Find out why it failed.</p>
+    <p>© 2026 Why contributors</p>
+  </footer>
+</body>
+</html>
