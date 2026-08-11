@@ -60,6 +60,9 @@ func Render(w io.Writer, report model.Report, suggestions bool) {
 		if e.Type == "supervisor" {
 			fmt.Fprintf(w, "  timeout after %vms\n", e.Data["timeout_ms"])
 		}
+		if e.Type == "elf" {
+			fmt.Fprintf(w, "  ELF %q requires %v\n", e.Data["path"], e.Data["needed"])
+		}
 	}
 	if suggestions && report.Diagnosis.Cause.ID == "network.bind.address_in_use" {
 		fmt.Fprintln(w, "\nSuggestion\n  Stop the process using this port or configure the application to use another port.")

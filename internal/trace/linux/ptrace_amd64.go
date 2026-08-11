@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
@@ -236,14 +237,19 @@ func recordFileOutcome(events []model.Event, outcome *model.FileFailure) []model
 	if outcome.Errno != "" {
 		return appendRelevantEvent(events, model.Event{FileFailure: outcome})
 	}
-	for i := len(events) - 1; i >= 0; i-- {
-		previous := events[i].FileFailure
-		if previous != nil && previous.PID == outcome.PID && previous.Operation == outcome.Operation && previous.Path == outcome.Path {
-			return append(events[:i], events[i+1:]...)
+	filtered := events[:0]
+	for _, event := range events {
+		previous := event.FileFailure
+		samePath := previous != nil && previous.PID == outcome.PID && previous.Operation == outcome.Operation && previous.Path == outcome.Path
+		sameOpenBasename := previous != nil && previous.PID == outcome.PID && isOpenOperation(previous.Operation) && isOpenOperation(outcome.Operation) && filepath.Base(previous.Path) == filepath.Base(outcome.Path)
+		if !samePath && !sameOpenBasename {
+			filtered = append(filtered, event)
 		}
 	}
-	return events
+	return filtered
 }
+
+func isOpenOperation(operation string) bool { return operation == "open" || operation == "openat" }
 
 const maxRelevantEvents = 512
 

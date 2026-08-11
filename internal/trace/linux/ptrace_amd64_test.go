@@ -29,3 +29,11 @@ func TestSuccessfulRetryRemovesFailure(t *testing.T) {
 		t.Fatalf("events were not cleared: %#v", events)
 	}
 }
+
+func TestSuccessfulOpenRemovesFailedSearchesForSameBasename(t *testing.T) {
+	events := recordFileOutcome(nil, &model.FileFailure{PID: 1, Operation: "openat", Path: "/first/libfoo.so", Errno: "ENOENT"})
+	events = recordFileOutcome(events, &model.FileFailure{PID: 1, Operation: "openat", Path: "/second/libfoo.so"})
+	if len(events) != 0 {
+		t.Fatalf("failed library search was not cleared: %#v", events)
+	}
+}
