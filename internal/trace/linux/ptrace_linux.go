@@ -1,4 +1,4 @@
-//go:build linux && amd64
+//go:build linux && (amd64 || arm64)
 
 package linux
 
@@ -114,29 +114,28 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 		}
 		sig := ws.StopSignal()
 		if sig == syscall.Signal(int(syscall.SIGTRAP)|0x80) {
-			var regs syscall.PtraceRegs
-			if err := syscall.PtraceGetRegs(pid, &regs); err == nil {
+			if frame, err := readSyscallFrame(pid); err == nil {
 				if !state.inSyscall {
 					state.inSyscall = true
-					state.syscall = regs.Orig_rax
-					state.args = [6]uint64{regs.Rdi, regs.Rsi, regs.Rdx, regs.R10, regs.R8, regs.R9}
+					state.syscall = frame.Number
+					state.args = frame.Args
 					state.fileOp, state.filePath, state.fileFlags = fileCall(pid, state.syscall, state.args)
 				} else {
 					state.inSyscall = false
-					if state.syscall == syscall.SYS_BIND && int64(regs.Rax) == -int64(syscall.EADDRINUSE) {
+					if state.syscall == sysBind && frame.Result == -int64(syscall.EADDRINUSE) {
 						if b, ok := readBind(pid, uintptr(state.args[1]), state.args[2]); ok {
 							events = appendRelevantEvent(events, model.Event{BindFailure: b})
 						}
 					}
-					if state.syscall == syscall.SYS_CONNECT {
-						if errno := connectErrno(int64(regs.Rax)); errno != "" {
+					if state.syscall == sysConnect {
+						if errno := connectErrno(frame.Result); errno != "" {
 							if failure, ok := readConnect(pid, uintptr(state.args[1]), state.args[2], errno); ok {
 								events = appendRelevantEvent(events, model.Event{ConnectFailure: failure})
 							}
 						}
 					}
 					if state.filePath != "" {
-						failure := &model.FileFailure{PID: pid, Operation: state.fileOp, Path: state.filePath, Flags: state.fileFlags, Errno: fileErrno(int64(regs.Rax)), Timestamp: time.Now()}
+						failure := &model.FileFailure{PID: pid, Operation: state.fileOp, Path: state.filePath, Flags: state.fileFlags, Errno: fileErrno(frame.Result), Timestamp: time.Now()}
 						events = recordFileOutcome(events, failure)
 						state.fileOp, state.filePath, state.fileFlags = "", "", 0
 					}
@@ -171,13 +170,13 @@ func fileCall(pid int, number uint64, args [6]uint64) (string, string, uint64) {
 	var pathAddress uint64
 	var flags uint64
 	switch number {
-	case syscall.SYS_OPEN:
+	case sysOpen:
 		operation, pathAddress, flags = "open", args[0], args[1]
-	case syscall.SYS_OPENAT:
+	case sysOpenat:
 		operation, pathAddress, flags = "openat", args[1], args[2]
-	case syscall.SYS_MKDIR:
+	case sysMkdir:
 		operation, pathAddress = "mkdir", args[0]
-	case syscall.SYS_MKDIRAT:
+	case sysMkdirat:
 		operation, pathAddress = "mkdirat", args[1]
 	default:
 		return "", "", 0

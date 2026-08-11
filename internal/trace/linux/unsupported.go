@@ -1,4 +1,4 @@
-//go:build !linux || !amd64
+//go:build !linux || (!amd64 && !arm64)
 
 package linux
 
@@ -16,5 +16,5 @@ type Tracer struct {
 }
 
 func (*Tracer) Run(context.Context, model.Command) (trace.Result, error) {
-	return trace.Result{}, errors.New("ptrace backend currently supports linux/amd64")
+	return trace.Result{}, errors.New("ptrace backend currently supports linux/amd64 and linux/arm64")
 }
