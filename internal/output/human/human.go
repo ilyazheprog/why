@@ -63,6 +63,9 @@ func Render(w io.Writer, report model.Report, suggestions bool) {
 		if e.Type == "elf" {
 			fmt.Fprintf(w, "  ELF %q requires %v\n", e.Data["path"], e.Data["needed"])
 		}
+		if e.Type == "cgroup_memory" {
+			fmt.Fprintf(w, "  cgroup %v: oom_kill %v → %v\n", e.Data["path"], e.Data["oom_kill_before"], e.Data["oom_kill_after"])
+		}
 	}
 	if suggestions && report.Diagnosis.Cause.ID == "network.bind.address_in_use" {
 		fmt.Fprintln(w, "\nSuggestion\n  Stop the process using this port or configure the application to use another port.")

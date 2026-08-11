@@ -16,13 +16,25 @@ type Command struct {
 }
 
 type ProcessResult struct {
-	PID        int
-	ExitCode   *int
-	Signal     string
-	Duration   time.Duration
-	TimedOut   bool
-	Timeout    time.Duration
-	ExecFailed bool
+	PID          int
+	ExitCode     *int
+	Signal       string
+	Duration     time.Duration
+	TimedOut     bool
+	Timeout      time.Duration
+	ExecFailed   bool
+	CgroupMemory *CgroupMemoryResult
+}
+
+type CgroupMemoryResult struct {
+	Path          string
+	OOMBefore     uint64
+	OOMAfter      uint64
+	OOMKillBefore uint64
+	OOMKillAfter  uint64
+	CurrentBytes  uint64
+	MaxBytes      *uint64
+	PeakBytes     *uint64
 }
 
 type BindFailure struct {

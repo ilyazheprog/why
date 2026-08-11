@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"whytool.org/why/internal/enrich/cgroup"
 	"whytool.org/why/internal/model"
 	"whytool.org/why/internal/trace"
 )
@@ -59,6 +60,7 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 	if _, err := syscall.Wait4(root, &status, 0, nil); err != nil {
 		return trace.Result{}, err
 	}
+	memoryBefore, memorySnapshotOK := cgroup.ReadMemoryForPID(root)
 	const ptraceOExitKill = 0x00100000
 	options := syscall.PTRACE_O_TRACESYSGOOD | syscall.PTRACE_O_TRACEFORK | syscall.PTRACE_O_TRACEVFORK | syscall.PTRACE_O_TRACECLONE | syscall.PTRACE_O_TRACEEXEC | ptraceOExitKill
 	if err := syscall.PtraceSetOptions(root, options); err != nil {
@@ -156,6 +158,11 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 		result.TimedOut = true
 	}
 	result.Duration = time.Since(started)
+	if memorySnapshotOK == nil {
+		if memoryAfter, err := cgroup.ReadMemoryPath(memoryBefore.Path); err == nil {
+			result.CgroupMemory = cgroup.Correlate(memoryBefore, memoryAfter)
+		}
+	}
 	return trace.Result{Process: result, Events: events}, nil
 }
 
