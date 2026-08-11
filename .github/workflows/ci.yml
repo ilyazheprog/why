@@ -78,8 +78,8 @@ jobs:
           if-no-files-found: error
 
   build-arm64:
-    name: Cross-build linux/arm64 (experimental)
-    runs-on: ubuntu-latest
+    name: Build linux/arm64
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     steps:
       - name: Check out repository
@@ -100,11 +100,19 @@ jobs:
 
       - name: Verify ARM64 binary type
         run: |
+          test "$(uname -m)" = aarch64
           file why | grep -q 'ARM aarch64'
           if file why | grep -q 'dynamically linked'; then
             echo "ARM64 binary is dynamically linked" >&2
             exit 1
           fi
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: why-linux-arm64
+          path: why
+          if-no-files-found: error
 
   integration:
     name: ptrace integration
@@ -167,6 +175,9 @@ jobs:
 
       - name: Verify native architecture
         run: test "$(uname -m)" = aarch64
+
+      - name: Test installer end to end
+        run: bash tests/integration/installer.sh "$GITHUB_WORKSPACE"
 
       - name: Build Why and fixtures natively
         env:

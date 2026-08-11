@@ -20,10 +20,7 @@ fi
 
 case $(uname -m) in
   x86_64|amd64) architecture=amd64 ;;
-  aarch64|arm64)
-    echo "why installer: linux/arm64 is not supported by this release yet" >&2
-    exit 66
-    ;;
+  aarch64|arm64) architecture=arm64 ;;
   *)
     echo "why installer: unsupported architecture: $(uname -m)" >&2
     exit 1
