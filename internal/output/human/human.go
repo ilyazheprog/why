@@ -19,6 +19,8 @@ func Render(w io.Writer, report model.Report, suggestions bool) {
 	}
 	if report.Process.ExitCode != nil {
 		fmt.Fprintf(w, "\n%s exited with code %d after %s\n", name, *report.Process.ExitCode, duration)
+	} else if report.Process.ExecFailed {
+		fmt.Fprintf(w, "\n%s could not be executed after %s\n", name, duration)
 	} else {
 		fmt.Fprintf(w, "\n%s terminated by %s after %s\n", name, report.Process.Signal, duration)
 	}
@@ -35,6 +37,12 @@ func Render(w io.Writer, report model.Report, suggestions bool) {
 		}
 		if e.Type == "signal" {
 			fmt.Fprintf(w, "  signal: %v\n", e.Data["signal"])
+		}
+		if e.Type == "exec" {
+			fmt.Fprintf(w, "  execve(%q) → %v\n", e.Data["path"], e.Data["errno"])
+		}
+		if e.Type == "filesystem" {
+			fmt.Fprintf(w, "  stat(%q) → %v\n", e.Data["path"], e.Data["errno"])
 		}
 	}
 	if suggestions && report.Diagnosis.Cause.ID == "network.bind.address_in_use" {

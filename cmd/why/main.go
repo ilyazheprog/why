@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"syscall"
+	"time"
 
 	"whytool.org/why/internal/cli"
 	"whytool.org/why/internal/diagnosis"
 	"whytool.org/why/internal/model"
 	humanout "whytool.org/why/internal/output/human"
 	jsonout "whytool.org/why/internal/output/json"
+	"whytool.org/why/internal/trace"
 	linuxtrace "whytool.org/why/internal/trace/linux"
 )
 
@@ -41,9 +41,17 @@ func run(args []string) int {
 		targetOut = os.Stderr
 	}
 	tracer := &linuxtrace.Tracer{Stdin: os.Stdin, Stdout: targetOut, Stderr: targetErr}
+	started := time.Now()
 	result, err := tracer.Run(ctx, model.Command{Args: cfg.Command})
 	if err != nil {
-		return renderExecError(cfg, err)
+		var startErr *trace.CommandStartError
+		if !errors.As(err, &startErr) {
+			fmt.Fprintln(os.Stderr, "why: tracing failed:", err)
+			return 65
+		}
+		process := model.ProcessResult{Duration: time.Since(started), ExecFailed: true}
+		report := model.Report{SchemaVersion: "1", Command: cfg.Command, Result: "failed", Process: process, Diagnosis: diagnosis.EvaluateExecFailure(cfg.Command, startErr.Err)}
+		return renderReport(cfg, report)
 	}
 	report := model.Report{SchemaVersion: "1", Command: cfg.Command, Process: result.Process, Diagnosis: diagnosis.Evaluate(result.Events, result.Process)}
 	if result.Process.ExitCode != nil && *result.Process.ExitCode == 0 {
@@ -51,6 +59,10 @@ func run(args []string) int {
 	} else {
 		report.Result = "failed"
 	}
+	return renderReport(cfg, report)
+}
+
+func renderReport(cfg cli.Config, report model.Report) int {
 	if cfg.JSON {
 		if err := jsonout.Render(os.Stdout, report); err != nil {
 			fmt.Fprintln(os.Stderr, "why: writing JSON:", err)
@@ -59,7 +71,7 @@ func run(args []string) int {
 	} else if !cfg.Quiet {
 		humanout.Render(os.Stderr, report, cfg.Suggestions)
 	}
-	if result.Process.TimedOut {
+	if report.Process.TimedOut {
 		return 124
 	}
 	if report.Result == "succeeded" {
@@ -69,23 +81,4 @@ func run(args []string) int {
 		return 2
 	}
 	return 1
-}
-
-func renderExecError(cfg cli.Config, err error) int {
-	var ee *exec.Error
-	var pe *os.PathError
-	if errors.As(err, &ee) || (errors.As(err, &pe) && errors.Is(err, syscall.ENOENT)) {
-		fmt.Fprintf(os.Stderr, "why: command not found: %s\n", cfg.Command[0])
-		return 1
-	}
-	if errors.Is(err, syscall.EACCES) {
-		fmt.Fprintf(os.Stderr, "why: cannot execute %s: permission denied\n", cfg.Command[0])
-		return 1
-	}
-	if errors.Is(err, syscall.ENOEXEC) {
-		fmt.Fprintf(os.Stderr, "why: cannot execute %s: invalid executable format\n", cfg.Command[0])
-		return 1
-	}
-	fmt.Fprintln(os.Stderr, "why: tracing failed:", err)
-	return 65
 }
