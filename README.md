@@ -35,6 +35,8 @@ make test
 
 CI checks formatting, tests, `go vet`, the race detector, static Linux builds for amd64 and arm64, and the end-to-end `ptrace` address-conflict diagnosis.
 
+Version tags matching `v*.*.*` run the release pipeline. It tests the tagged source, produces reproducible standalone archives for `linux/amd64` and `linux/arm64`, creates `SHA256SUMS`, and publishes the files to GitHub Releases.
+
 ## Usage
 
 ```text
