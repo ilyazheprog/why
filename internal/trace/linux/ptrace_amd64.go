@@ -38,7 +38,7 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = t.Stdin, t.Stdout, t.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{Ptrace: true}
 	if err := cmd.Start(); err != nil {
-		return trace.Result{}, err
+		return trace.Result{}, &trace.CommandStartError{Err: err}
 	}
 	root := cmd.Process.Pid
 	done := make(chan struct{})
