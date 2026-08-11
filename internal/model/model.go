@@ -21,6 +21,7 @@ type ProcessResult struct {
 	Signal     string
 	Duration   time.Duration
 	TimedOut   bool
+	Timeout    time.Duration
 	ExecFailed bool
 }
 

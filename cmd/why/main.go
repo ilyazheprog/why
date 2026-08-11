@@ -53,6 +53,9 @@ func run(args []string) int {
 		report := model.Report{SchemaVersion: "1", Command: cfg.Command, Result: "failed", Process: process, Diagnosis: diagnosis.EvaluateExecFailure(cfg.Command, startErr.Err)}
 		return renderReport(cfg, report)
 	}
+	if result.Process.TimedOut {
+		result.Process.Timeout = cfg.Timeout
+	}
 	report := model.Report{SchemaVersion: "1", Command: cfg.Command, Process: result.Process, Diagnosis: diagnosis.Evaluate(result.Events, result.Process)}
 	if result.Process.ExitCode != nil && *result.Process.ExitCode == 0 {
 		report.Result = "succeeded"

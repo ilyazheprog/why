@@ -72,6 +72,9 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 	for len(states) > 0 {
 		if ctx.Err() != nil {
 			result.TimedOut = true
+			for task := range states {
+				_ = syscall.Kill(task, syscall.SIGKILL)
+			}
 		}
 		var ws syscall.WaitStatus
 		pid, err := syscall.Wait4(-1, &ws, syscall.WALL, nil)

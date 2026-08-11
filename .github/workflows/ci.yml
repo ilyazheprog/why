@@ -116,5 +116,8 @@ jobs:
       - name: Diagnose signal termination
         run: bash tests/integration/signal_termination.sh /tmp/why
 
+      - name: Enforce Why timeout across process tree
+        run: bash tests/integration/timeout.sh /tmp/why
+
       - name: Diagnose command execution failures
         run: bash tests/integration/exec_failures.sh /tmp/why "$GITHUB_WORKSPACE"

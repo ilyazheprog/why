@@ -6,4 +6,6 @@ Top-level fields are `schema_version`, `command`, `result`, `process`, and `diag
 
 Filesystem IDs include `filesystem.path_missing`, `filesystem.permission_denied`, `filesystem.read_only`, `filesystem.no_space`, `filesystem.quota_exceeded`, and `resource.file_descriptor_limit`.
 
+When Why terminates a target because `--timeout` expires, the stable ID is `process.timeout`, the process object includes `timed_out: true` and `timeout_ms`, and Why exits with status 124. This is distinct from a target-originated `SIGKILL`.
+
 Human wording is not a machine interface. Consumers should use `schema_version`, diagnostic IDs, confidence, and typed evidence.
