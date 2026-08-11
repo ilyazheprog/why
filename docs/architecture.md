@@ -7,7 +7,7 @@ CLI → Linux ptrace tracer → normalized events → evidence/rule engine
     → causal diagnosis → human or JSON renderer
 ```
 
-`internal/model` contains platform-neutral command, event, evidence, cause, diagnosis, and report types. `internal/trace` is the backend interface; architecture-specific register and syscall handling lives in `internal/trace/linux`. Rules consume normalized events rather than registers or raw syscall records.
+`internal/model` contains platform-neutral command, event, evidence, cause, diagnosis, and report types. `internal/trace` is the backend interface; architecture-specific register and syscall handling lives in `registers_amd64.go` and `registers_arm64.go`. Both ABIs feed the same Linux tracer loop and normalized event model. Rules consume normalized events rather than registers or raw syscall records.
 
 Command-start failures are typed separately from tracer failures. The diagnosis engine correlates the kernel exec error with bounded shebang or ELF metadata inspection; ambiguous failures remain unknown. This prevents a ptrace policy error from being mislabeled as a target permission problem.
 
