@@ -88,7 +88,7 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 					result.ExitCode = &code
 				}
 				if ws.Signaled() {
-					result.Signal = ws.Signal().String()
+					result.Signal = signalName(ws.Signal())
 				}
 			}
 			continue
@@ -136,6 +136,31 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 	}
 	result.Duration = time.Since(started)
 	return trace.Result{Process: result, Events: events}, nil
+}
+
+func signalName(signal syscall.Signal) string {
+	switch signal {
+	case syscall.SIGSEGV:
+		return "SIGSEGV"
+	case syscall.SIGABRT:
+		return "SIGABRT"
+	case syscall.SIGILL:
+		return "SIGILL"
+	case syscall.SIGFPE:
+		return "SIGFPE"
+	case syscall.SIGBUS:
+		return "SIGBUS"
+	case syscall.SIGKILL:
+		return "SIGKILL"
+	case syscall.SIGTERM:
+		return "SIGTERM"
+	case syscall.SIGINT:
+		return "SIGINT"
+	case syscall.SIGHUP:
+		return "SIGHUP"
+	default:
+		return fmt.Sprintf("SIG%d", signal)
+	}
 }
 
 func readBind(pid int, address uintptr, length uint64) (*model.BindFailure, bool) {
