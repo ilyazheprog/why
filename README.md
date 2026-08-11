@@ -27,6 +27,14 @@ CGO_ENABLED=0 go build -buildvcs=false -o why ./cmd/why
 
 No external commands or runtimes are invoked by the resulting binary.
 
+## Development
+
+```sh
+make test
+```
+
+CI checks formatting, tests, `go vet`, the race detector, static Linux builds for amd64 and arm64, and the end-to-end `ptrace` address-conflict diagnosis.
+
 ## Usage
 
 ```text

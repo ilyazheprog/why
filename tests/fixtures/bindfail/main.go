@@ -17,6 +17,12 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	if path := os.Getenv("WHY_FIXTURE_ADDRESS_FILE"); path != "" {
+		if err := os.WriteFile(path, []byte(listener.Addr().String()), 0600); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
 	if os.Getenv("WHY_FIXTURE_HOLD") != "" {
 		time.Sleep(10 * time.Second)
 	}
