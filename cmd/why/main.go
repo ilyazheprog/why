@@ -56,7 +56,13 @@ func run(args []string) int {
 	if result.Process.TimedOut {
 		result.Process.Timeout = cfg.Timeout
 	}
-	report := model.Report{SchemaVersion: "1", Command: cfg.Command, Process: result.Process, Diagnosis: diagnosis.Evaluate(result.Events, result.Process)}
+	diagnosed := diagnosis.Evaluate(result.Events, result.Process)
+	if diagnosed.Confidence != model.Certain {
+		if elfDiagnosis := diagnosis.EvaluateMissingLibrary(cfg.Command, result.Events, result.Process); elfDiagnosis.Confidence == model.Certain {
+			diagnosed = elfDiagnosis
+		}
+	}
+	report := model.Report{SchemaVersion: "1", Command: cfg.Command, Process: result.Process, Diagnosis: diagnosed}
 	if result.Process.ExitCode != nil && *result.Process.ExitCode == 0 {
 		report.Result = "succeeded"
 	} else {

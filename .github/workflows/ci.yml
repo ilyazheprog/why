@@ -103,6 +103,7 @@ jobs:
           go build -buildvcs=false -o /tmp/why-bindfail ./tests/fixtures/bindfail
           go build -buildvcs=false -o /tmp/why-connectfail ./tests/fixtures/connectfail
           go build -buildvcs=false -o /tmp/why-filefail ./tests/fixtures/filefail
+          go build -buildvcs=false -o /tmp/why-patchneeded ./tests/fixtures/patchneeded
 
       - name: Diagnose address already in use
         run: bash tests/integration/bind_address_in_use.sh /tmp/why /tmp/why-bindfail
@@ -112,6 +113,9 @@ jobs:
 
       - name: Diagnose filesystem failures
         run: bash tests/integration/filesystem_failures.sh /tmp/why /tmp/why-filefail
+
+      - name: Diagnose missing ELF libraries
+        run: bash tests/integration/missing_library.sh /tmp/why /tmp/why-patchneeded
 
       - name: Diagnose signal termination
         run: bash tests/integration/signal_termination.sh /tmp/why
