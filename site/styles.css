@@ -50,6 +50,13 @@ h1 em { color: var(--green); font-style: normal; }
 .button.primary:hover { background: #c8ff91; }
 .button.secondary:hover { border-color: var(--muted); }
 
+.install-block { border-top: 1px solid var(--line); padding: 72px 0; display: grid; grid-template-columns: .85fr 2.15fr; gap: 64px; align-items: center; }
+.install-block h2 { font-size: clamp(34px, 4vw, 54px); line-height: 1; letter-spacing: -.055em; margin-bottom: 0; }
+.install-command { border: 1px solid var(--line); background: var(--panel); padding: 30px 32px; min-width: 0; }
+.install-command code { display: block; color: var(--text); font-size: clamp(12px, 1.4vw, 16px); overflow-x: auto; white-space: nowrap; }
+.install-command code span { color: var(--green); }
+.install-command p { color: var(--muted); font-size: 12px; margin: 18px 0 0; }
+
 .demo { border: 1px solid var(--line); background: #080a09; box-shadow: 0 28px 100px rgba(0,0,0,.35); }
 .terminal-bar { height: 46px; padding: 0 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: #3a413b; }
@@ -85,7 +92,7 @@ footer { min-height: 120px; border-top: 1px solid var(--line); display: flex; al
 footer .brand { color: var(--text); margin-right: auto; }
 
 @media (max-width: 850px) {
-  .principles, .status { grid-template-columns: 1fr; gap: 44px; }
+  .install-block, .principles, .status { grid-template-columns: 1fr; gap: 44px; }
   .cards { grid-template-columns: 1fr; }
   .cards article { min-height: 0; grid-template-rows: auto 62px auto; }
 }
