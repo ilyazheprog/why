@@ -150,3 +150,51 @@ jobs:
 
       - name: Diagnose command execution failures
         run: bash tests/integration/exec_failures.sh /tmp/why "$GITHUB_WORKSPACE"
+
+  integration-arm64:
+    name: ptrace integration (arm64)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify native architecture
+        run: test "$(uname -m)" = aarch64
+
+      - name: Build Why and fixtures natively
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          go build -buildvcs=false -o /tmp/why ./cmd/why
+          go build -buildvcs=false -o /tmp/why-bindfail ./tests/fixtures/bindfail
+          go build -buildvcs=false -o /tmp/why-connectfail ./tests/fixtures/connectfail
+          go build -buildvcs=false -o /tmp/why-filefail ./tests/fixtures/filefail
+          go build -buildvcs=false -o /tmp/why-patchneeded ./tests/fixtures/patchneeded
+
+      - name: Diagnose address already in use
+        run: bash tests/integration/bind_address_in_use.sh /tmp/why /tmp/why-bindfail
+
+      - name: Diagnose refused connections
+        run: bash tests/integration/connect_refused.sh /tmp/why /tmp/why-bindfail /tmp/why-connectfail
+
+      - name: Diagnose filesystem failures
+        run: bash tests/integration/filesystem_failures.sh /tmp/why /tmp/why-filefail
+
+      - name: Diagnose missing ELF libraries
+        run: bash tests/integration/missing_library.sh /tmp/why /tmp/why-patchneeded
+
+      - name: Diagnose signal termination
+        run: bash tests/integration/signal_termination.sh /tmp/why
+
+      - name: Enforce Why timeout across process tree
+        run: bash tests/integration/timeout.sh /tmp/why
+
+      - name: Diagnose command execution failures
+        run: bash tests/integration/exec_failures.sh /tmp/why "$GITHUB_WORKSPACE"
