@@ -38,7 +38,7 @@
       </div>
       <div class="install-command">
         <code><span>$</span> bash &lt;(curl -fsSL https://whytool.org/install.sh)</code>
-        <p>Linux · amd64 / arm64 · checksum verified</p>
+        <p>Linux · amd64 · checksum verified</p>
       </div>
     </section>
 
@@ -93,7 +93,7 @@ server exited with code 1 after 184ms
       <div>
         <div class="eyebrow">EARLY DEVELOPMENT</div>
         <h2>The first vertical slice is alive.</h2>
-        <p>Why currently traces Linux/amd64 programs with <code>ptrace</code>, follows their process tree, diagnoses TCP address conflicts, and identifies the process holding the port through procfs.</p>
+        <p>Why currently traces Linux/amd64 programs with <code>ptrace</code>, follows their process tree, and diagnoses execution, filesystem, network, ELF loader, timeout, and signal failures.</p>
       </div>
       <div class="pipeline" aria-label="Current diagnostic pipeline">
         <span>ptrace</span><b>→</b><span>events</span><b>→</b><span>evidence</span><b>→</b><span>cause</span>

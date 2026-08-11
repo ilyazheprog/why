@@ -38,14 +38,10 @@ jobs:
         run: go vet ./...
 
   build:
-    name: Package linux/${{ matrix.arch }}
+    name: Package linux/amd64
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [amd64, arm64]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -61,7 +57,7 @@ jobs:
         env:
           CGO_ENABLED: "0"
           GOOS: linux
-          GOARCH: ${{ matrix.arch }}
+          GOARCH: amd64
         run: |
           version=${GITHUB_REF_NAME#v}
           go build \
@@ -79,15 +75,13 @@ jobs:
             echo "release binary is dynamically linked" >&2
             exit 1
           fi
-          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
-            test "$(./why --version)" = "why ${GITHUB_REF_NAME#v}"
-          fi
+          test "$(./why --version)" = "why ${GITHUB_REF_NAME#v}"
 
       - name: Create reproducible archive
         shell: bash
         run: |
           version=${GITHUB_REF_NAME#v}
-          archive_dir="why_${version}_linux_${{ matrix.arch }}"
+          archive_dir="why_${version}_linux_amd64"
           mkdir -p "stage/$archive_dir" dist
           install -m 0755 why "stage/$archive_dir/why"
           install -m 0644 README.md LICENSE-MIT "stage/$archive_dir/"
@@ -106,7 +100,7 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: why-linux-${{ matrix.arch }}
+          name: why-linux-amd64
           path: dist/*.tar.gz
           if-no-files-found: error
           retention-days: 7
