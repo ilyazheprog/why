@@ -33,7 +33,7 @@ func Render(w io.Writer, report model.Report, suggestions bool) {
 	fmt.Fprintln(w, "\nEvidence")
 	for _, e := range report.Diagnosis.Evidence {
 		if e.Type == "syscall" {
-			fmt.Fprintf(w, "  bind(%s:%v) → %v\n", e.Data["address"], e.Data["port"], e.Data["errno"])
+			fmt.Fprintf(w, "  %v(%s:%v) → %v\n", e.Data["name"], e.Data["address"], e.Data["port"], e.Data["errno"])
 		}
 		if e.Type == "signal" {
 			fmt.Fprintf(w, "  signal: %v\n", e.Data["signal"])

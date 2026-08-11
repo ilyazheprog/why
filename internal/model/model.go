@@ -33,8 +33,18 @@ type BindFailure struct {
 	Timestamp time.Time
 }
 
+type ConnectFailure struct {
+	PID       int
+	Network   string
+	Address   string
+	Port      uint16
+	Errno     string
+	Timestamp time.Time
+}
+
 type Event struct {
-	BindFailure *BindFailure
+	BindFailure    *BindFailure
+	ConnectFailure *ConnectFailure
 }
 
 type Evidence struct {
