@@ -120,3 +120,23 @@ func TestTimeoutTakesPrecedenceOverSIGKILL(t *testing.T) {
 		t.Fatalf("unexpected diagnosis: %#v", d)
 	}
 }
+
+func TestCgroupOOMRequiresCounterIncreaseAndRemainsLikely(t *testing.T) {
+	process := model.ProcessResult{PID: 42, Signal: "SIGKILL", CgroupMemory: &model.CgroupMemoryResult{
+		Path: "/jobs/why", OOMBefore: 2, OOMAfter: 3, OOMKillBefore: 1, OOMKillAfter: 2,
+	}}
+	d := Evaluate(nil, process)
+	if d.Cause == nil || d.Cause.ID != "memory.cgroup_oom" || d.Confidence != model.Likely {
+		t.Fatalf("unexpected diagnosis: %#v", d)
+	}
+}
+
+func TestCgroupOOMWithoutKillDeltaStaysSIGKILL(t *testing.T) {
+	process := model.ProcessResult{PID: 42, Signal: "SIGKILL", CgroupMemory: &model.CgroupMemoryResult{
+		Path: "/jobs/why", OOMBefore: 2, OOMAfter: 3, OOMKillBefore: 1, OOMKillAfter: 1,
+	}}
+	d := Evaluate(nil, process)
+	if d.Cause == nil || d.Cause.ID != "process.sigkill" {
+		t.Fatalf("unexpected diagnosis: %#v", d)
+	}
+}

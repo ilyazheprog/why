@@ -17,6 +17,9 @@ func Evaluate(events []model.Event, process model.ProcessResult) model.Diagnosis
 		return model.Diagnosis{Confidence: model.Unknown}
 	}
 	if process.Signal != "" {
+		if process.Signal == "SIGKILL" && process.CgroupMemory != nil && process.CgroupMemory.OOMKillAfter > process.CgroupMemory.OOMKillBefore {
+			return cgroupOOMDiagnosis(process)
+		}
 		return signalDiagnosis(process)
 	}
 	for i := len(events) - 1; i >= 0; i-- {
@@ -43,6 +46,25 @@ func Evaluate(events []model.Event, process model.ProcessResult) model.Diagnosis
 		return model.Diagnosis{Confidence: model.Certain, Cause: cause, Evidence: []model.Evidence{evidence}}
 	}
 	return model.Diagnosis{Confidence: model.Unknown}
+}
+
+func cgroupOOMDiagnosis(process model.ProcessResult) model.Diagnosis {
+	memory := process.CgroupMemory
+	data := map[string]any{
+		"path": memory.Path, "oom_before": memory.OOMBefore, "oom_after": memory.OOMAfter,
+		"oom_kill_before": memory.OOMKillBefore, "oom_kill_after": memory.OOMKillAfter,
+		"current_bytes": memory.CurrentBytes,
+	}
+	if memory.MaxBytes != nil {
+		data["max_bytes"] = *memory.MaxBytes
+	}
+	if memory.PeakBytes != nil {
+		data["peak_bytes"] = *memory.PeakBytes
+	}
+	e1 := model.Evidence{ID: "e1", Type: "signal", Source: "ptrace", ProcessID: process.PID, Data: map[string]any{"signal": process.Signal}}
+	e2 := model.Evidence{ID: "e2", Type: "cgroup_memory", Source: "cgroup", ProcessID: process.PID, Data: data}
+	cause := &model.Cause{ID: "memory.cgroup_oom", Summary: "Process was likely killed after its memory cgroup reported an OOM kill", Confidence: model.Likely, Evidence: []string{"e1", "e2"}}
+	return model.Diagnosis{Confidence: model.Likely, Cause: cause, Evidence: []model.Evidence{e1, e2}}
 }
 
 func timeoutDiagnosis(process model.ProcessResult) model.Diagnosis {

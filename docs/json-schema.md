@@ -10,4 +10,6 @@ Filesystem IDs include `filesystem.path_missing`, `filesystem.permission_denied`
 
 When Why terminates a target because `--timeout` expires, the stable ID is `process.timeout`, the process object includes `timed_out: true` and `timeout_ms`, and Why exits with status 124. This is distinct from a target-originated `SIGKILL`.
 
+`memory.cgroup_oom` requires both target termination by `SIGKILL` and an increase in the target cgroup v2 `memory.events` `oom_kill` counter during execution. It is reported as `likely`, because the kernel counter does not identify the individual victim process. A bare `SIGKILL` remains `process.sigkill` and is never labeled OOM.
+
 Human wording is not a machine interface. Consumers should use `schema_version`, diagnostic IDs, confidence, and typed evidence.

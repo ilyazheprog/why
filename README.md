@@ -68,7 +68,7 @@ Target stdout remains on stdout and target stderr remains on stderr. In JSON mod
 - Command-start diagnostics cover missing commands, execution permission, invalid executable formats, missing shebang interpreters, and missing ELF loaders.
 - Network diagnostics cover `bind(2)` address conflicts and `connect(2)` refusal, timeout, unreachable network/host, reset, and unavailable-address failures. Process termination diagnoses cover signals including `SIGSEGV`, `SIGABRT`, and `SIGKILL`.
 - Filesystem candidates cover missing paths, permissions, read-only filesystems, space/quota exhaustion, file descriptor limits, and path type errors. They are reported conservatively as likely causes unless stronger causal evidence exists.
-- `SIGKILL` alone is never reported as OOM. Ambiguous OOM cases remain unknown rather than receiving a guessed cause.
+- `SIGKILL` alone is never reported as OOM. A cgroup OOM is reported as likely only when the target's cgroup v2 `oom_kill` counter increases during the traced execution.
 - Listener lookup currently searches the tracing process's network namespace and may omit the owner when procfs permissions prevent inspection.
 - Other target failures correctly return an unknown diagnosis.
 
