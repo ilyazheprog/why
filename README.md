@@ -4,7 +4,7 @@
 
 Unlike tracing tools that only expose low-level events, Why correlates operating-system evidence into causal diagnoses. Why does not guess: a root cause is reported only when observable evidence supports it.
 
-The current development version implements the first Linux/amd64 vertical slice: direct command execution under `ptrace`, process-tree tracing, `bind(2)`/`EADDRINUSE` normalization, `/proc` listener ownership enrichment, a causal diagnosis, and human or JSON output.
+The current development version implements direct Linux/amd64 execution under `ptrace`, process-tree tracing, `bind(2)`/`EADDRINUSE` normalization, `/proc` listener ownership enrichment, signal termination diagnoses, and human or JSON output.
 
 ```console
 $ why ./server
@@ -55,7 +55,8 @@ Target stdout remains on stdout and target stderr remains on stderr. In JSON mod
 ## Current limits
 
 - Trace backend: Linux/amd64 only.
-- The only syscall diagnosis currently implemented is TCP `bind(2)` returning `EADDRINUSE`.
+- The syscall diagnosis currently implemented is TCP `bind(2)` returning `EADDRINUSE`; process termination diagnoses cover signals including `SIGSEGV`, `SIGABRT`, and `SIGKILL`.
+- `SIGKILL` alone is never reported as OOM. Deterministic cgroup correlation is not implemented yet.
 - Listener lookup currently searches the tracing process's network namespace and may omit the owner when procfs permissions prevent inspection.
 - Other target failures correctly return an unknown diagnosis.
 

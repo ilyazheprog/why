@@ -33,6 +33,9 @@ func Render(w io.Writer, report model.Report, suggestions bool) {
 		if e.Type == "syscall" {
 			fmt.Fprintf(w, "  bind(%s:%v) → %v\n", e.Data["address"], e.Data["port"], e.Data["errno"])
 		}
+		if e.Type == "signal" {
+			fmt.Fprintf(w, "  signal: %v\n", e.Data["signal"])
+		}
 	}
 	if suggestions && report.Diagnosis.Cause.ID == "network.bind.address_in_use" {
 		fmt.Fprintln(w, "\nSuggestion\n  Stop the process using this port or configure the application to use another port.")

@@ -7,7 +7,10 @@ import (
 	"whytool.org/why/internal/model"
 )
 
-func Evaluate(events []model.Event) model.Diagnosis {
+func Evaluate(events []model.Event, process model.ProcessResult) model.Diagnosis {
+	if process.Signal != "" {
+		return signalDiagnosis(process)
+	}
 	for i := len(events) - 1; i >= 0; i-- {
 		failure := events[i].BindFailure
 		if failure == nil || failure.Errno != "EADDRINUSE" {
@@ -26,4 +29,31 @@ func Evaluate(events []model.Event) model.Diagnosis {
 		return model.Diagnosis{Confidence: model.Certain, Cause: cause, Evidence: []model.Evidence{evidence}}
 	}
 	return model.Diagnosis{Confidence: model.Unknown}
+}
+
+func signalDiagnosis(process model.ProcessResult) model.Diagnosis {
+	id := "process.signal"
+	summary := fmt.Sprintf("Process was terminated with %s", process.Signal)
+	switch process.Signal {
+	case "SIGSEGV":
+		id = "process.sigsegv"
+	case "SIGABRT":
+		id = "process.sigabrt"
+	case "SIGKILL":
+		id = "process.sigkill"
+	case "SIGTERM":
+		id = "process.sigterm"
+	case "SIGILL":
+		id = "process.sigill"
+	case "SIGFPE":
+		id = "process.sigfpe"
+	case "SIGBUS":
+		id = "process.sigbus"
+	default:
+		// The observed termination is certain even when no signal-specific rule exists.
+		id = "process.signal_termination"
+	}
+	evidence := model.Evidence{ID: "e1", Type: "signal", Source: "ptrace", ProcessID: process.PID, Data: map[string]any{"signal": process.Signal}}
+	cause := &model.Cause{ID: id, Summary: summary, Confidence: model.Certain, Evidence: []string{"e1"}}
+	return model.Diagnosis{Confidence: model.Certain, Cause: cause, Evidence: []model.Evidence{evidence}}
 }
