@@ -117,6 +117,13 @@ func (t *Tracer) Run(ctx context.Context, command model.Command) (trace.Result, 
 							events = append(events, model.Event{BindFailure: b})
 						}
 					}
+					if state.syscall == syscall.SYS_CONNECT {
+						if errno := connectErrno(int64(regs.Rax)); errno != "" {
+							if failure, ok := readConnect(pid, uintptr(state.args[1]), state.args[2], errno); ok {
+								events = append(events, model.Event{ConnectFailure: failure})
+							}
+						}
+					}
 				}
 			}
 		} else if sig == syscall.SIGTRAP && ws.TrapCause() != 0 {
@@ -164,8 +171,24 @@ func signalName(signal syscall.Signal) string {
 }
 
 func readBind(pid int, address uintptr, length uint64) (*model.BindFailure, bool) {
-	if length < 8 {
+	network, host, port, ok := readSocketAddress(pid, address, length)
+	if !ok {
 		return nil, false
+	}
+	return &model.BindFailure{PID: pid, Network: network, Address: host, Port: port, Errno: "EADDRINUSE", Timestamp: time.Now()}, true
+}
+
+func readConnect(pid int, address uintptr, length uint64, errno string) (*model.ConnectFailure, bool) {
+	network, host, port, ok := readSocketAddress(pid, address, length)
+	if !ok {
+		return nil, false
+	}
+	return &model.ConnectFailure{PID: pid, Network: network, Address: host, Port: port, Errno: errno, Timestamp: time.Now()}, true
+}
+
+func readSocketAddress(pid int, address uintptr, length uint64) (string, string, uint16, bool) {
+	if length < 8 {
+		return "", "", 0, false
 	}
 	n := int(length)
 	if n > 128 {
@@ -173,26 +196,39 @@ func readBind(pid int, address uintptr, length uint64) (*model.BindFailure, bool
 	}
 	buf := make([]byte, n)
 	if _, err := syscall.PtracePeekData(pid, address, buf); err != nil {
-		return nil, false
+		return "", "", 0, false
 	}
 	family := binary.LittleEndian.Uint16(buf[:2])
-	b := &model.BindFailure{PID: pid, Errno: "EADDRINUSE", Timestamp: time.Now()}
 	switch family {
 	case syscall.AF_INET:
-		b.Network = "tcp4"
-		b.Port = binary.BigEndian.Uint16(buf[2:4])
-		b.Address = fmt.Sprintf("%d.%d.%d.%d", buf[4], buf[5], buf[6], buf[7])
+		return "ip4", fmt.Sprintf("%d.%d.%d.%d", buf[4], buf[5], buf[6], buf[7]), binary.BigEndian.Uint16(buf[2:4]), true
 	case syscall.AF_INET6:
 		if len(buf) < 24 {
-			return nil, false
+			return "", "", 0, false
 		}
-		b.Network = "tcp6"
-		b.Port = binary.BigEndian.Uint16(buf[2:4])
-		b.Address = ipv6(buf[8:24])
+		return "ip6", ipv6(buf[8:24]), binary.BigEndian.Uint16(buf[2:4]), true
 	default:
-		return nil, false
+		return "", "", 0, false
 	}
-	return b, true
+}
+
+func connectErrno(result int64) string {
+	switch -result {
+	case int64(syscall.ECONNREFUSED):
+		return "ECONNREFUSED"
+	case int64(syscall.ETIMEDOUT):
+		return "ETIMEDOUT"
+	case int64(syscall.ENETUNREACH):
+		return "ENETUNREACH"
+	case int64(syscall.EHOSTUNREACH):
+		return "EHOSTUNREACH"
+	case int64(syscall.ECONNRESET):
+		return "ECONNRESET"
+	case int64(syscall.EADDRNOTAVAIL):
+		return "EADDRNOTAVAIL"
+	default:
+		return ""
+	}
 }
 
 func ipv6(b []byte) string {

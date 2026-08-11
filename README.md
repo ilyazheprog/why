@@ -66,7 +66,7 @@ Target stdout remains on stdout and target stderr remains on stderr. In JSON mod
 
 - Trace backend: Linux/amd64 only.
 - Command-start diagnostics cover missing commands, execution permission, invalid executable formats, missing shebang interpreters, and missing ELF loaders.
-- The syscall diagnosis currently implemented is TCP `bind(2)` returning `EADDRINUSE`; process termination diagnoses cover signals including `SIGSEGV`, `SIGABRT`, and `SIGKILL`.
+- Network diagnostics cover `bind(2)` address conflicts and `connect(2)` refusal, timeout, unreachable network/host, reset, and unavailable-address failures. Process termination diagnoses cover signals including `SIGSEGV`, `SIGABRT`, and `SIGKILL`.
 - `SIGKILL` alone is never reported as OOM. Deterministic cgroup correlation is not implemented yet.
 - Listener lookup currently searches the tracing process's network namespace and may omit the owner when procfs permissions prevent inspection.
 - Other target failures correctly return an unknown diagnosis.

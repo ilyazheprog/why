@@ -20,7 +20,7 @@ type Owner struct {
 
 func FindListener(f model.BindFailure) (*Owner, error) {
 	files := []string{"/proc/net/tcp"}
-	if f.Network == "tcp6" {
+	if f.Network == "ip6" {
 		files = []string{"/proc/net/tcp6"}
 	}
 	inode, err := findInode(files[0], f.Port)
