@@ -28,12 +28,23 @@ func Render(w io.Writer, report model.Report, suggestions bool) {
 		fmt.Fprintln(w, "\nWhy could not determine the root cause.")
 		return
 	}
-	fmt.Fprintln(w, "\nRoot cause")
+	heading := "Root cause"
+	switch report.Diagnosis.Confidence {
+	case model.Likely:
+		heading = "Likely cause"
+	case model.Possible:
+		heading = "Possible cause"
+	}
+	fmt.Fprintln(w, "\n"+heading)
 	renderCause(w, *report.Diagnosis.Cause, "")
 	fmt.Fprintln(w, "\nEvidence")
 	for _, e := range report.Diagnosis.Evidence {
 		if e.Type == "syscall" {
-			fmt.Fprintf(w, "  %v(%s:%v) → %v\n", e.Data["name"], e.Data["address"], e.Data["port"], e.Data["errno"])
+			if path, ok := e.Data["path"]; ok {
+				fmt.Fprintf(w, "  %v(%q) → %v\n", e.Data["name"], path, e.Data["errno"])
+			} else {
+				fmt.Fprintf(w, "  %v(%s:%v) → %v\n", e.Data["name"], e.Data["address"], e.Data["port"], e.Data["errno"])
+			}
 		}
 		if e.Type == "signal" {
 			fmt.Fprintf(w, "  signal: %v\n", e.Data["signal"])

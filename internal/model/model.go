@@ -42,9 +42,19 @@ type ConnectFailure struct {
 	Timestamp time.Time
 }
 
+type FileFailure struct {
+	PID       int
+	Operation string
+	Path      string
+	Flags     uint64
+	Errno     string
+	Timestamp time.Time
+}
+
 type Event struct {
 	BindFailure    *BindFailure
 	ConnectFailure *ConnectFailure
+	FileFailure    *FileFailure
 }
 
 type Evidence struct {

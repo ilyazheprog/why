@@ -102,12 +102,16 @@ jobs:
           go build -buildvcs=false -o /tmp/why ./cmd/why
           go build -buildvcs=false -o /tmp/why-bindfail ./tests/fixtures/bindfail
           go build -buildvcs=false -o /tmp/why-connectfail ./tests/fixtures/connectfail
+          go build -buildvcs=false -o /tmp/why-filefail ./tests/fixtures/filefail
 
       - name: Diagnose address already in use
         run: bash tests/integration/bind_address_in_use.sh /tmp/why /tmp/why-bindfail
 
       - name: Diagnose refused connections
         run: bash tests/integration/connect_refused.sh /tmp/why /tmp/why-bindfail /tmp/why-connectfail
+
+      - name: Diagnose filesystem failures
+        run: bash tests/integration/filesystem_failures.sh /tmp/why /tmp/why-filefail
 
       - name: Diagnose signal termination
         run: bash tests/integration/signal_termination.sh /tmp/why
