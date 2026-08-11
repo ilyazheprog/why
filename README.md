@@ -27,6 +27,14 @@ CGO_ENABLED=0 go build -buildvcs=false -o why ./cmd/why
 
 No external commands or runtimes are invoked by the resulting binary.
 
+## Install or update
+
+```sh
+bash <(curl -fsSL https://whytool.org/install.sh)
+```
+
+The installer downloads the latest release for the current Linux architecture, verifies it against the published `SHA256SUMS`, and installs it to `~/.local/bin/why`. Set `WHY_INSTALL_DIR` to choose another directory or `WHY_VERSION` to install a specific version.
+
 ## Development
 
 ```sh
@@ -34,6 +42,8 @@ make test
 ```
 
 CI checks formatting, tests, `go vet`, the race detector, static Linux builds for amd64 and arm64, and the end-to-end `ptrace` address-conflict diagnosis.
+
+Version tags matching `v*.*.*` run the release pipeline. It tests the tagged source, produces reproducible standalone archives for `linux/amd64` and `linux/arm64`, creates `SHA256SUMS`, and publishes the files to GitHub Releases.
 
 ## Usage
 

@@ -1,0 +1,145 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Release checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "invalid release tag: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Run vet
+        run: go vet ./...
+
+  build:
+    name: Package linux/${{ matrix.arch }}
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build static binary
+        shell: bash
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          go build \
+            -trimpath \
+            -buildvcs=false \
+            -ldflags "-s -w -X main.version=$version" \
+            -o why \
+            ./cmd/why
+
+      - name: Verify binary
+        shell: bash
+        run: |
+          file why
+          if file why | grep -q 'dynamically linked'; then
+            echo "release binary is dynamically linked" >&2
+            exit 1
+          fi
+          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
+            test "$(./why --version)" = "why ${GITHUB_REF_NAME#v}"
+          fi
+
+      - name: Create reproducible archive
+        shell: bash
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          archive_dir="why_${version}_linux_${{ matrix.arch }}"
+          mkdir -p "stage/$archive_dir" dist
+          install -m 0755 why "stage/$archive_dir/why"
+          install -m 0644 README.md LICENSE-MIT "stage/$archive_dir/"
+          source_date_epoch=$(git show -s --format=%ct HEAD)
+          tar \
+            --sort=name \
+            --mtime="@$source_date_epoch" \
+            --owner=0 \
+            --group=0 \
+            --numeric-owner \
+            -C stage \
+            -cf - \
+            "$archive_dir" \
+            | gzip -n > "dist/${archive_dir}.tar.gz"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: why-linux-${{ matrix.arch }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: why-linux-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create checksums
+        working-directory: dist
+        shell: bash
+        run: sha256sum why_*.tar.gz | sort -k2 > SHA256SUMS
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/why_*.tar.gz \
+            dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --generate-notes \
+            --title "Why ${GITHUB_REF_NAME#v}"

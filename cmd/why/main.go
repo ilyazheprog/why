@@ -16,7 +16,8 @@ import (
 	linuxtrace "whytool.org/why/internal/trace/linux"
 )
 
-const version = "0.1.0-dev"
+// version is replaced in release builds with -ldflags "-X main.version=<tag>".
+var version = "0.1.0-dev"
 
 func main() { os.Exit(run(os.Args[1:])) }
 
