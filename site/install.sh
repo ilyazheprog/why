@@ -30,7 +30,10 @@ esac
 if [[ -n "$requested_version" ]]; then
   version=${requested_version#v}
 else
-  latest_url=$(curl -fsSL -o /dev/null -w '%{url_effective}' "${release_base}/latest")
+  if ! latest_url=$(curl -fsSL -o /dev/null -w '%{url_effective}' "${release_base}/latest"); then
+    echo "why installer: no public release is available yet" >&2
+    exit 1
+  fi
   tag=${latest_url##*/}
   if [[ $tag != v* ]]; then
     echo "why installer: could not determine the latest release" >&2
