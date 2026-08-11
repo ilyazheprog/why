@@ -2,6 +2,8 @@ package diagnosis
 
 import (
 	"testing"
+	"time"
+
 	"whytool.org/why/internal/model"
 )
 
@@ -108,6 +110,13 @@ func TestSingleFileFailureIsNotEnoughForDiagnosis(t *testing.T) {
 	events := []model.Event{{FileFailure: &model.FileFailure{PID: 42, Operation: "openat", Path: "/optional/config", Errno: "ENOENT"}}}
 	d := Evaluate(events, model.ProcessResult{})
 	if d.Cause != nil || d.Confidence != model.Unknown {
+		t.Fatalf("unexpected diagnosis: %#v", d)
+	}
+}
+
+func TestTimeoutTakesPrecedenceOverSIGKILL(t *testing.T) {
+	d := Evaluate(nil, model.ProcessResult{PID: 42, Signal: "SIGKILL", TimedOut: true, Timeout: 100 * time.Millisecond})
+	if d.Cause == nil || d.Cause.ID != "process.timeout" || d.Confidence != model.Certain {
 		t.Fatalf("unexpected diagnosis: %#v", d)
 	}
 }

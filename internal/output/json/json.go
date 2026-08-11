@@ -12,6 +12,7 @@ type process struct {
 	Signal     string `json:"signal,omitempty"`
 	DurationMS int64  `json:"duration_ms"`
 	TimedOut   bool   `json:"timed_out,omitempty"`
+	TimeoutMS  int64  `json:"timeout_ms,omitempty"`
 	ExecFailed bool   `json:"exec_failed,omitempty"`
 }
 type document struct {
@@ -23,7 +24,7 @@ type document struct {
 }
 
 func Render(w io.Writer, r model.Report) error {
-	d := document{r.SchemaVersion, r.Command, r.Result, process{r.Process.PID, r.Process.ExitCode, r.Process.Signal, r.Process.Duration.Milliseconds(), r.Process.TimedOut, r.Process.ExecFailed}, r.Diagnosis}
+	d := document{r.SchemaVersion, r.Command, r.Result, process{r.Process.PID, r.Process.ExitCode, r.Process.Signal, r.Process.Duration.Milliseconds(), r.Process.TimedOut, r.Process.Timeout.Milliseconds(), r.Process.ExecFailed}, r.Diagnosis}
 	enc := stdjson.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(d)

@@ -10,6 +10,9 @@ import (
 )
 
 func Evaluate(events []model.Event, process model.ProcessResult) model.Diagnosis {
+	if process.TimedOut {
+		return timeoutDiagnosis(process)
+	}
 	if process.ExitCode != nil && *process.ExitCode == 0 {
 		return model.Diagnosis{Confidence: model.Unknown}
 	}
@@ -40,6 +43,18 @@ func Evaluate(events []model.Event, process model.ProcessResult) model.Diagnosis
 		return model.Diagnosis{Confidence: model.Certain, Cause: cause, Evidence: []model.Evidence{evidence}}
 	}
 	return model.Diagnosis{Confidence: model.Unknown}
+}
+
+func timeoutDiagnosis(process model.ProcessResult) model.Diagnosis {
+	summary := "Process exceeded the Why timeout"
+	data := map[string]any{"duration_ms": process.Duration.Milliseconds()}
+	if process.Timeout > 0 {
+		summary = fmt.Sprintf("Process exceeded the %s timeout", process.Timeout)
+		data["timeout_ms"] = process.Timeout.Milliseconds()
+	}
+	evidence := model.Evidence{ID: "e1", Type: "supervisor", Source: "supervisor", ProcessID: process.PID, Data: data}
+	cause := &model.Cause{ID: "process.timeout", Summary: summary, Confidence: model.Certain, Evidence: []string{"e1"}}
+	return model.Diagnosis{Confidence: model.Certain, Cause: cause, Evidence: []model.Evidence{evidence}}
 }
 
 func repeatedFileFailure(events []model.Event, index int) bool {
